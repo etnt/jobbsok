@@ -6,11 +6,12 @@ Starta med starta.bat (Windows) eller: streamlit run app.py
 from __future__ import annotations
 
 import os
+from datetime import date
 
 import streamlit as st
 from dotenv import load_dotenv
 
-from jobbsok import annonser, dokument, geo, llm, matchning, platsbanken, settings
+from jobbsok import annonser, ansokningar, dokument, geo, llm, matchning, platsbanken, settings
 from jobbsok.storage import APP_DIR, connect
 
 load_dotenv(APP_DIR / ".env")
@@ -203,6 +204,9 @@ def _visa_annons(annons, status: str, poang) -> None:
         if status != annonser.STATUS_DOLD and k2.button("Dölj", key=f"dolj_{annons.id}"):
             annonser.satt_status(conn, annons.id, annonser.STATUS_DOLD)
             st.rerun()
+        if status == annonser.STATUS_SPARAD and st.button("Markera som ansökt", key=f"ansokt_{annons.id}"):
+            ansokningar.spara_status(conn, annons.id, ansokningar.ANSOKT)
+            st.rerun()
 
 
 def sida_sok_jobb() -> None:
@@ -264,17 +268,73 @@ def sida_sok_jobb() -> None:
                 _visa_annons(annons, status, poang.get(annons.id))
 
 
+def _ansokan_kort(a, status_val: str) -> None:
+    ann = a.annons
+    dagar = ansokningar.dagar_kvar(ann.sista_ansokningsdag)
+    varning = ""
+    if dagar is not None and dagar < 0:
+        varning = " · ⛔ Ansökningstiden har gått ut"
+    elif dagar is not None and dagar <= 3:
+        varning = f" · ⏰ {dagar} dagar kvar"
+    rubrik = f"{ansokningar.STATUSAR[a.status]}  ·  {ann.rubrik} – {ann.arbetsgivare} ({ann.ort}){varning}"
+    if ansokningar.behover_uppfoljning(a):
+        rubrik = "🔔 " + rubrik
+    with st.expander(rubrik):
+        st.markdown(
+            f"**Ansökt:** {a.ansokt_datum or '–'}  \n"
+            f"**Sista ansökningsdag:** {ann.sista_ansokningsdag or '–'}  \n"
+            f"**Anställning:** {ann.anstallning or '–'} · **Arbetstid:** {ann.arbetstid or '–'}"
+        )
+        if ansokningar.behover_uppfoljning(a):
+            st.info(f"Ansökan skickades för {ansokningar.UPPFOLJNING_EFTER_DAGAR}+ dagar sedan utan svar. "
+                    "Överväg att höra av dig.")
+        st.link_button("Öppna annonsen på Platsbanken", ann.lank, key=f"lank_{ann.id}_{status_val}")
+        nya_status = st.selectbox(
+            "Status", list(ansokningar.STATUSAR.keys()),
+            index=list(ansokningar.STATUSAR.keys()).index(a.status),
+            format_func=ansokningar.STATUSAR.get, key=f"status_{ann.id}_{status_val}",
+        )
+        datum_val = date.fromisoformat(a.ansokt_datum) if a.ansokt_datum else date.today()
+        nytt_datum = st.date_input("Ansökt den", datum_val, key=f"datum_{ann.id}_{status_val}")
+        anteckning = st.text_area("Anteckningar", a.anteckning, key=f"anteckning_{ann.id}_{status_val}",
+                                  placeholder="T.ex. kontaktperson, intervjutid, nästa steg")
+        k1, k2 = st.columns(2)
+        if k1.button("Spara", key=f"spara_ans_{ann.id}_{status_val}", type="primary"):
+            ansokningar.spara_status(conn, ann.id, nya_status,
+                                     ansokt_datum=nytt_datum.isoformat(), anteckning=anteckning)
+            st.rerun()
+        if k2.button("Ta bort från uppföljningen", key=f"ta_bort_{ann.id}_{status_val}"):
+            ansokningar.ta_bort(conn, ann.id)
+            st.rerun()
+
+
 def sida_tracker() -> None:
     st.header("Mina ansökningar")
-    st.caption("Välj en sparad annons för att skapa CV och personligt brev. "
-               "Du kan ändra allt innan du laddar ner dokumenten.")
-    sparade = [a for a, _ in annonser.lista(conn, annonser.STATUS_SPARAD)]
-    if not sparade:
+
+    # --- Uppföljning ---
+    antal = ansokningar.antal_per_status(conn)
+    st.subheader("Uppföljning")
+    flikar = st.tabs([f"{namn} ({antal.get(s, 0)})" for s, namn in ansokningar.STATUSAR.items()])
+    for flik, status in zip(flikar, ansokningar.STATUSAR):
+        with flik:
+            poster = ansokningar.lista(conn, status)
+            if not poster:
+                st.info("Inga ansökningar med den här statusen.")
+            for a in poster:
+                _ansokan_kort(a, status)
+
+    # --- CV och brev ---
+    st.divider()
+    st.subheader("CV och personligt brev")
+    st.caption("Välj en annons för att skapa eller ändra CV och brev.")
+    kandidater = [a for a, _ in annonser.lista(conn, annonser.STATUS_SPARAD)]
+    kandidater += [a.annons for a in ansokningar.lista(conn)]
+    if not kandidater:
         st.info("Spara en annons under Sök jobb först.")
         return
 
     valda = st.selectbox(
-        "Annons", sparade,
+        "Annons", kandidater,
         format_func=lambda a: f"{a.rubrik} – {a.arbetsgivare} ({a.ort})",
     )
     st.link_button("Öppna annonsen på Platsbanken", valda.lank)

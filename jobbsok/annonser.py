@@ -11,6 +11,7 @@ from .platsbanken import Annons
 STATUS_NY = "ny"
 STATUS_SPARAD = "sparad"
 STATUS_DOLD = "dold"
+STATUS_ANSOKT = "ansokt"  # ansökan finns i uppföljningen (ansokningar.py)
 
 
 def init_tabell(conn: sqlite3.Connection) -> None:
@@ -55,7 +56,7 @@ def lista(conn: sqlite3.Connection, status: str) -> list[tuple[Annons, str]]:
         "SELECT data, status FROM annonser WHERE status = ? ORDER BY json_extract(data, '$.publicerad') DESC",
         (status,),
     ).fetchall()
-    return [(_fran_json(r["data"]), r["status"]) for r in rader]
+    return [(fran_json(r["data"]), r["status"]) for r in rader]
 
 
 def antal_per_status(conn: sqlite3.Connection) -> dict[str, int]:
@@ -69,7 +70,7 @@ def satt_status(conn: sqlite3.Connection, annons_id: str, status: str) -> None:
     conn.commit()
 
 
-def _fran_json(text: str) -> Annons:
+def fran_json(text: str) -> Annons:
     data = json.loads(text)
     raw = data.pop("raw", {})
     return Annons(**data, raw=raw)
