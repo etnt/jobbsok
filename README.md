@@ -15,7 +15,8 @@ Lokal app för att hitta tillfälliga och deltidsjobb. Körs på din egen dator.
 - **Sökinställningar:** orter, avstånd och antal timmar per vecka.
 - **Sök jobb:** söker i Platsbanken inom valt avstånd. Deltid och tillfälliga jobb visas först. Spara eller dölj annonser.
 - **Bedöm med AI:** poängsätter annonser mot profilen (0–100) med en kort motivering och varningar. Max 25 annonser per klick. Kontaktuppgifter skickas aldrig till AI-modellen.
-- **Mina ansökningar:** kommer i nästa version.
+- **Mina ansökningar:** välj en sparad annons och skapa CV och personligt brev med AI. Språket följer annonsen (engelska om annonsen är på engelska, annars svenska). Redigera texten och ladda ner som Word-filer.
+  Kontrollera alltid fakta innan du skickar. AI kan ibland skriva något som inte stämmer.
 
 Sökningen använder Arbetsförmedlingens öppna API (ingen nyckel krävs) och OpenStreetMap för att hitta koordinater till orter.
 
