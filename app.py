@@ -12,9 +12,9 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from jobbsok import annonser, ansokningar, dokument, geo, llm, matchning, platsbanken, settings
-from jobbsok.storage import APP_DIR, connect
+from jobbsok.storage import connect, env_fil
 
-load_dotenv(APP_DIR / ".env", override=True)  # .env har företräde framför terminalens variabler
+load_dotenv(env_fil(), override=True)  # .env har företräde framför terminalens variabler
 
 st.set_page_config(page_title="JobbSök", page_icon="💼", layout="wide")
 

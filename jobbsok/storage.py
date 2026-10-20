@@ -5,16 +5,38 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
 APP_DIR = Path(__file__).resolve().parent.parent
 
 
+def er_fryst() -> bool:
+    """True när appen körs som färdigbyggd program (PyInstaller)."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def env_fil() -> Path:
+    """Filen .env med OPENROUTER_API_KEY. I den färdiga appen ligger den bredvid programmet."""
+    if er_fryst():
+        return Path(sys.executable).resolve().parent / ".env"
+    return APP_DIR / ".env"
+
+
 def data_dir() -> Path:
-    """Mappen för databasen. Kan ändras med miljövariabeln JOBBSOK_DATA."""
+    """Mappen för databasen. Kan ändras med miljövariabeln JOBBSOK_DATA.
+
+    Standard: data/ i projektmappen, eller i användarens AppData-mapp när appen är installerad.
+    """
     custom = os.environ.get("JOBBSOK_DATA")
-    path = Path(custom) if custom else APP_DIR / "data"
+    if custom:
+        path = Path(custom)
+    elif er_fryst():
+        bas = Path(os.environ.get("APPDATA") or Path.home())
+        path = bas / "JobbSok" / "data"
+    else:
+        path = APP_DIR / "data"
     path.mkdir(parents=True, exist_ok=True)
     return path
 

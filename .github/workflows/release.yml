@@ -1,0 +1,87 @@
+name: Release
+
+# Bygger Windows-programmet och publicerar det som GitHub-release när en version-tagg pushas,
+# t.ex. v1.0.2:  git tag v1.0.2 && git push origin v1.0.2
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kontrollera versionsnummer
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Ogiltig tagg '$GITHUB_REF_NAME'. Använd formatet v1.2.3"
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installera beroenden
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-build.txt pytest
+
+      - name: Kör tester
+        run: python -m pytest -q
+
+      - name: Bygg programmet
+        run: >
+          python -m PyInstaller --noconfirm --name JobbSok --onedir launcher.py
+          --add-data "app.py;."
+          --add-data "jobbsok;jobbsok"
+          --collect-all streamlit
+          --copy-metadata streamlit
+          --copy-metadata python-dotenv
+          --copy-metadata python-docx
+          --collect-all docx
+
+      - name: Rökprov – starta programmet
+        shell: bash
+        env:
+          JOBBSOK_PORT: "8517"
+          JOBBSOK_DATA: ${{ runner.temp }}/jobbsok-data
+        run: |
+          ./dist/JobbSok/JobbSok.exe > programlogg.txt 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8517/_stcore/health >/dev/null; then
+              echo "Programmet svarar."
+              curl -sf -o /dev/null -w "Startsidan: %{http_code}\n" http://localhost:8517/
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Programmet startade inte. Logg:"
+          cat programlogg.txt
+          exit 1
+
+      - name: Paketera
+        shell: bash
+        run: |
+          mkdir -p paket
+          cp -r dist/JobbSok paket/JobbSok
+          cp .env.example paket/JobbSok/.env.example
+          cp packaging/LASMIG.txt paket/JobbSok/LASMIG.txt
+          cd paket
+          python -m zipfile -c "$GITHUB_WORKSPACE/JobbSok-${GITHUB_REF_NAME}-windows.zip" JobbSok
+
+      - name: Publicera release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "JobbSok-${GITHUB_REF_NAME}-windows.zip" \
+            --title "JobbSök $GITHUB_REF_NAME" \
+            --generate-notes

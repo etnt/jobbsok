@@ -1,0 +1,35 @@
+JobbSök – installation och start
+================================
+
+Krav: Windows 10 eller 11. Ingen Python behövs.
+
+1. Packa upp zip-filen till en mapp, t.ex. C:\JobbSok
+   Mappen ska se ut så här:
+       C:\JobbSok\JobbSok.exe
+       C:\JobbSok\_internal\   (ska ligga kvar)
+       C:\JobbSok\.env.example
+
+2. Skapa nyckelfilen:
+   - Kopiera filen .env.example och döp kopian till .env
+   - Öppna .env med Anteckningar och skriv in din OpenRouter-nyckel
+     efter OPENROUTER_API_KEY=
+   - Spara. Dela aldrig filen med någon.
+
+3. Starta appen:
+   - Dubbelklicka på JobbSok.exe
+   - Webbläsaren öppnas på http://localhost:8501
+   - Låt svart fönster vara öppet så länge du använder appen.
+     Stäng fönstret för att avsluta.
+
+Om Windows visar "Windows skyddade din dator" (SmartScreen):
+   - Klicka på "Mer information" och sedan på "Kör ändå".
+   Det beror på att programmet inte är digitalt signerat.
+
+Dina uppgifter:
+   - Databasen (profil, annonser, ansökningar) sparas i
+     %APPDATA%\JobbSok\data
+   - Om du uppgraderar genom att packa upp en ny version i samma mapp
+     behålls dina uppgifter och filen .env.
+
+Byta datamapp:
+   - Lägg till raden JOBBSOK_DATA=C:\önskad\mapp i filen .env.
