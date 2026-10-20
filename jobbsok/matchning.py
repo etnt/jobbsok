@@ -31,6 +31,8 @@ Svara ENDAST med ett JSON-objekt med dessa fält:
 - "sprakkrav": "svenska_kravs", "engelska_racker" eller "okant"
 - "varningar": lista med korta svenska strängar, t.ex. krav som personen troligen inte uppfyller (kan vara tom)
 
+Om annonsen kräver körkort och personen saknar körkort: ge högst 20 i poäng.
+
 Var ärlig. Om annonsen kräver något personen inte har, sänk poängen och nämn det.
 Om annonsen är för avlägsen från personens ort eller arbetstid inte passar, nämn det.
 """

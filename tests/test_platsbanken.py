@@ -66,3 +66,25 @@ def test_annonser_lagras_och_behaller_status(tmp_path):
     sparade = annonser.lista(conn, annonser.STATUS_SPARAD)
     assert len(sparade) == 1 and sparade[0][0].rubrik == a.rubrik
     assert annonser.antal_per_status(conn) == {"sparad": 1}
+
+
+def test_utan_korkort_skickas_filter_till_api():
+    sok = Sokinstallningar(orter=["A"], endast_deltid_och_tillfalligt=False)
+    fraga = bygg_frageparametrar([Plats("A", 1, 2)], sok, har_korkort=False)[0]
+    assert ("driving-license-required", "false") in fraga
+
+
+def test_med_korkort_inget_korkortsfilter():
+    sok = Sokinstallningar(orter=["A"], endast_deltid_och_tillfalligt=False)
+    fraga = bygg_frageparametrar([Plats("A", 1, 2)], sok, har_korkort=True)[0]
+    assert not any(k == "driving-license-required" for k, _ in fraga)
+
+
+def test_korkort_ok():
+    a = _annons_fixture()
+    a.korkort_kravs = True
+    assert not platsbanken.korkort_ok(a, False)
+    assert platsbanken.korkort_ok(a, True)
+    assert platsbanken.korkort_ok(a, None)
+    a.korkort_kravs = False
+    assert platsbanken.korkort_ok(a, False)

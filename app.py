@@ -175,7 +175,7 @@ def _poang_etikett(poang) -> str:
     return f"🔴 {poang.poang}"
 
 
-def _visa_annons(annons, status: str, poang) -> None:
+def _visa_annons(annons, status: str, poang, har_korkort: bool) -> None:
     rubrik = f"{_poang_etikett(poang)}  ·  {annons.rubrik} – {annons.arbetsgivare} ({annons.ort})"
     with st.expander(rubrik):
         if poang is not None:
@@ -192,6 +192,8 @@ def _visa_annons(annons, status: str, poang) -> None:
             f"**Yrke:** {annons.yrke or '–'}  \n"
             f"**Publicerad:** {annons.publicerad or '–'}"
         )
+        if not har_korkort and "körkort" in (annons.beskrivning or "").lower():
+            st.warning("Annonsen nämner körkort. Kontrollera kravet innan du söker.")
         st.markdown(annons.beskrivning or "_Ingen beskrivning._")
         st.link_button("Öppna annonsen på Platsbanken", annons.lank)
         k1, k2 = st.columns(2)
@@ -217,6 +219,9 @@ def sida_sok_jobb() -> None:
     if not profil.namn and not profil.arbetslivserfarenhet and not profil.cv_text:
         st.info("Tips: fyll i Min profil först, så kan jobben bedömas mot din bakgrund.")
 
+    if not profil.korkort:
+        st.caption("Annonser som kräver körkort visas inte, eftersom din profil saknar körkort. "
+                   "Bocka i \"Har körkort\" under Min profil om det ändras.")
     st.caption("Söker i Platsbanken (Arbetsförmedlingen) inom "
                f"{sok.radie_km} km från: {', '.join(sok.orter)}")
     k1, k2 = st.columns(2)
@@ -231,7 +236,7 @@ def sida_sok_jobb() -> None:
                     else:
                         platser.append(plats)
                 if platser:
-                    hittade = platsbanken.sok_annonser(platser, sok)
+                    hittade = platsbanken.sok_annonser(platser, sok, har_korkort=profil.korkort)
                     nya = annonser.spara_nya(conn, hittade)
                     st.success(f"Hittade {len(hittade)} annonser, varav {nya} nya.")
             except Exception as fel:  # nätverksfel, API-fel
@@ -248,21 +253,25 @@ def sida_sok_jobb() -> None:
             st.error(meddelande)
 
     poang = matchning.hamta_poang(conn)
-    antal = annonser.antal_per_status(conn)
+    # Samma filter för antalen i flikarna som för listorna
+    per_status = {
+        s: [(a, x) for a, x in annonser.lista(conn, s) if platsbanken.korkort_ok(a, profil.korkort)]
+        for s in [annonser.STATUS_NY, annonser.STATUS_SPARAD, annonser.STATUS_DOLD]
+    }
     flikar = st.tabs([
-        f"Nya ({antal.get(annonser.STATUS_NY, 0)})",
-        f"Sparade ({antal.get(annonser.STATUS_SPARAD, 0)})",
-        f"Dolda ({antal.get(annonser.STATUS_DOLD, 0)})",
+        f"Nya ({len(per_status[annonser.STATUS_NY])})",
+        f"Sparade ({len(per_status[annonser.STATUS_SPARAD])})",
+        f"Dolda ({len(per_status[annonser.STATUS_DOLD])})",
     ])
     for flik, status in zip(flikar, [annonser.STATUS_NY, annonser.STATUS_SPARAD, annonser.STATUS_DOLD]):
         with flik:
-            lista = annonser.lista(conn, status)
+            lista = list(per_status[status])
             # Bästa poäng först, onbedömda sist
             lista.sort(key=lambda par: -(poang[par[0].id].poang if par[0].id in poang else -1))
             if not lista:
                 st.info("Inga annonser här ännu.")
             for annons, _ in lista[:100]:
-                _visa_annons(annons, status, poang.get(annons.id))
+                _visa_annons(annons, status, poang.get(annons.id), profil.korkort)
 
 
 def _ansokan_kort(a, status_val: str) -> None:

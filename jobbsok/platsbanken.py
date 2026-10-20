@@ -89,7 +89,9 @@ def _get_json(path: str, params: list[tuple[str, str]]) -> dict[str, Any]:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def bygg_frageparametrar(platser: Iterable[Plats], sok: Sokinstallningar) -> list[list[tuple[str, str]]]:
+def bygg_frageparametrar(
+    platser: Iterable[Plats], sok: Sokinstallningar, har_korkort: bool | None = None
+) -> list[list[tuple[str, str]]]:
     """Gör en lista med frågor (parameterlistor) för API:t.
 
     En fråga per plats och per filtertyp. Resultaten slås ihop efteråt.
@@ -105,6 +107,9 @@ def bygg_frageparametrar(platser: Iterable[Plats], sok: Sokinstallningar) -> lis
             ("sort", "pubdate-desc"),
             ("limit", "100"),
         ]
+        if har_korkort is False:
+            # Hoppa över annonser som kräver körkort när personen saknar körkort
+            bas.append(("driving-license-required", "false"))
         if sok.endast_deltid_och_tillfalligt:
             # Deltid: ads med omfattning under 100 %
             fragor.append(bas + [("parttime.max", "99")])
@@ -127,15 +132,20 @@ def passar_timmar(annons: Annons, sok: Sokinstallningar) -> bool:
     return annons.omfattning_min <= onskad_max and annons.omfattning_max >= onskad_min
 
 
-def sok_annonser(platser: list[Plats], sok: Sokinstallningar) -> list[Annons]:
-    """Kör alla frågor, slår ihop dubbletter och filtrerar på timmar."""
+def korkort_ok(annons: Annons, har_korkort: bool | None) -> bool:
+    """False om annonsen kräver körkort och personen saknar körkort."""
+    return not (annons.korkort_kravs and har_korkort is False)
+
+
+def sok_annonser(platser: list[Plats], sok: Sokinstallningar, har_korkort: bool | None = None) -> list[Annons]:
+    """Kör alla frågor, slår ihop dubbletter och filtrerar på timmar och körkort."""
     funna: dict[str, Annons] = {}
-    for params in bygg_frageparametrar(platser, sok):
+    for params in bygg_frageparametrar(platser, sok, har_korkort):
         data = _get_json("/search", params + [("resdet", "full")])
         for hit in data.get("hits", []):
             annons = Annons.fran_api(hit)
             if annons.id and annons.id not in funna:
                 funna[annons.id] = annons
-    resultat = [a for a in funna.values() if passar_timmar(a, sok)]
+    resultat = [a for a in funna.values() if passar_timmar(a, sok) and korkort_ok(a, har_korkort)]
     resultat.sort(key=lambda a: a.publicerad, reverse=True)
     return resultat

@@ -95,3 +95,7 @@ def test_parsa_json_med_kodblock():
 def test_http_fel_klassas():
     assert llm._forklara_http_fel(401, "", "m").startswith("OpenRouter-nyckeln")
     assert "finns inte" in llm._forklara_http_fel(404, "", "x/y")
+
+
+def test_korkortsregel_finns_i_prompten():
+    assert "körkort" in matchning.SYSTEM_PROMPT and "högst 20" in matchning.SYSTEM_PROMPT
