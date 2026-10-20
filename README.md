@@ -1,6 +1,6 @@
 # JobbSök
 
-Lokal app för att hitta tillfälliga och deltidsjobb. Körs på din egen dator.
+Lokal app för att hitta jobb i Sverige, heltid, deltid eller tillfälligt. Körs på din egen dator.
 
 ## Installation (Windows)
 
@@ -13,8 +13,8 @@ Lokal app för att hitta tillfälliga och deltidsjobb. Körs på din egen dator.
 
 - **Min profil:** fyll i uppgifter och klistra in CV-texten.
 - **Sökinställningar:** orter, avstånd och antal timmar per vecka.
-- **Sök jobb:** söker i Platsbanken inom valt avstånd. Deltid och tillfälliga
-  jobb visas först. Spara eller dölj annonser.
+- **Sök jobb:** söker i Platsbanken inom valt avstånd. Alla jobb visas som standard.
+  Under Sökinställningar kan du kryssa i "Bara deltid och tillfälliga jobb". Spara eller dölj annonser.
 - **Bedöm med AI:** poängsätter annonser mot profilen (0–100) med en kort
   motivering och varningar. Max 25 annonser per klick. Kontaktuppgifter
   skickas aldrig till AI-modellen.

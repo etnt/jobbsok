@@ -20,7 +20,7 @@ from .settings import Modeller, Profil, Sokinstallningar
 MAX_BESKRIVNING_TECKEN = 6000
 Chattfunktion = Callable[..., str]
 
-SYSTEM_PROMPT = """Du hjälper en person att hitta tillfälliga och deltidsjobb i Sverige.
+SYSTEM_PROMPT = """Du hjälper en person att hitta jobb i Sverige. Jobbet kan vara heltid, deltid eller tillfälligt; följ personens önskemål.
 Du får en profil på personen, hens sökinriktning och en jobbannons.
 Bedöm hur väl annonsen passar personen.
 

@@ -1,4 +1,4 @@
-"""JobbSök – lokal app för att hitta tillfälliga och deltidsjobb.
+"""JobbSök – lokal app för att hitta jobb i Sverige (heltid, deltid eller tillfälligt).
 
 Starta med starta.bat (Windows) eller: streamlit run app.py
 """
@@ -105,8 +105,9 @@ def sida_sok() -> None:
             )
         with c2:
             deltid = st.checkbox(
-                "Visa endast deltid, visstid och tillfälliga jobb",
+                "Visa bara deltid och tillfälliga jobb",
                 s.endast_deltid_och_tillfalligt,
+                help="Av = visa alla jobb, även heltidsjobb. Timantalet ovan gäller oavsett.",
             )
         yrken = st.text_area(
             "Yrken eller sökord (en per rad, tomt = alla yrken)",

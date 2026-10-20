@@ -35,7 +35,7 @@ class Sokinstallningar:
     timmar_min: int = 0  # 0 = inget krav
     timmar_max: int = 40
     yrken: list[str] = field(default_factory=list)  # fritt, tomt = alla
-    endast_deltid_och_tillfalligt: bool = True
+    endast_deltid_och_tillfalligt: bool = False  # True = visa bara deltid och tillfälliga jobb
 
 
 @dataclass
