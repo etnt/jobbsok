@@ -4,10 +4,18 @@ Lokal app för att hitta jobb i Sverige, heltid, deltid eller tillfälligt. Kör
 
 ## Installation (Windows)
 
-1. Installera Python 3.11 eller nyare från python.org. Bocka i "Add python to PATH".
-2. Kopiera `.env.example` till `.env` och skriv in OpenRouter-nyckeln.
-3. Dubbelklicka på `starta.bat`. Första körningen installerar det som behövs.
-4. Webbläsaren öppnas på http://localhost:8501.
+Ingen Python behövs. Du behöver:
+
+- Windows 10 eller 11 (64-bit)
+- Internetanslutning
+- En OpenRouter-nyckel (skapas på openrouter.ai)
+
+1. Hämta den senaste zip-filen `JobbSok-vX.Y.Z-windows.zip` under **Releases** på GitHub.
+2. Packa upp den i en mapp, t.ex. `C:\JobbSok`.
+3. Kopiera `.env.example` till `.env` och skriv in OpenRouter-nyckeln.
+4. Dubbelklicka på `JobbSok.exe`. Webbläsaren öppnas på http://localhost:8501.
+
+Mer om detta, inklusive SmartScreen-varningen, finns i `LASMIG.txt` i zip-filen.
 
 ## Användning
 
@@ -29,26 +37,37 @@ Lokal app för att hitta jobb i Sverige, heltid, deltid eller tillfälligt. Kör
 Sökningen använder Arbetsförmedlingens öppna API (ingen nyckel krävs) och
 OpenStreetMap för att hitta koordinater till orter.
 
-Data sparas i mappen `data/` i appmappen. Personnummer lagras aldrig.
+Data sparas i:
 
-**Byta datamapp:** sätt `JOBBSOK_DATA` i filen `.env`,
-  t.ex. `JOBBSOK_DATA=C:\Users\DittNamn\JobbSok\data`. Om variabeln är tom
-  eller saknas används `data/`. Variabeln i `.env` har företräde framför en
-  eventuell variabel i terminalen, så kontrollera att du inte har en gammal
-  inställning där.
+- **Installerad app (zip):** `%APPDATA%\JobbSok\data`. Filen `.env` ligger bredvid `JobbSok.exe`.
+- **Från källkod:** mappen `data/` i projektmappen. Filen `.env` ligger i projektmappen.
 
-## Utveckling
+Byta datamapp: sätt `JOBBSOK_DATA` i `.env`, t.ex. `JOBBSOK_DATA=C:\Users\DittNamn\JobbSok\data`.
+Värdet i `.env` har företräde framför en eventuell variabel i terminalen.
 
+Personnummer lagras aldrig.
+
+## Utveckling (från källkod)
+
+Kräver Python 3.11 eller nyare och git. Användare av den färdiga zip-filen behöver inte detta.
+
+Windows:
+1. Dubbelklicka på `starta.bat`. Första körningen skapar en virtuell miljö och installerar det som behövs.
+
+macOS/Linux:
 ```
-python -m venv .venv
+python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt pytest
 .venv/bin/python -m pytest
 .venv/bin/streamlit run app.py
 ```
 
+Bygga Windows-programmet lokalt: `pip install -r requirements-build.txt`, sedan PyInstaller enligt
+`.github/workflows/release.yml`. Publicering sker automatiskt när en tagg som `v1.0.2` pushas.
+
 ## Inspiration
 
-(MadsLorentzen/ai-job-search)[https://github.com/MadsLorentzen/ai-job-search]
+[MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
 
 ## Licence
 
