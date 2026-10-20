@@ -100,8 +100,10 @@ def skapa_dokument(
     chatt: Chattfunktion = llm.chat,
 ) -> Dokument:
     sprak = sprak or sprak_for_annons(annons)
+    # Vissa modeller använder en stor del av utrymmet till internt resonerande,
+    # så vi ger gott om utrymme för hela CV:t och brevet.
     svar = chatt(_bygg_prompt(profil, sok, annons, sprak), modell,
-                 json_format=True, temperature=0.4, max_tokens=2000)
+                 json_format=True, temperature=0.4, max_tokens=8000)
     data = llm.parsa_json(svar)
 
     def lista(namn: str) -> list:

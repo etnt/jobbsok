@@ -68,9 +68,14 @@ def chat(
         raise LLMFel(f"Kunde inte nå OpenRouter. Kontrollera internetanslutningen. ({fel.reason})") from fel
 
     try:
-        return data["choices"][0]["message"]["content"] or ""
+        svar = data["choices"][0]
+        innehall = svar["message"]["content"] or ""
     except (KeyError, IndexError, TypeError) as fel:
         raise LLMFel(f"Oväntat svar från OpenRouter: {str(data)[:200]}") from fel
+    if not innehall.strip():
+        orsak = svar.get("finish_reason") or "okänd"
+        raise LLMFel(f"Modellen '{model}' gav inget textsvar (orsak: {orsak}). Försök igen.")
+    return innehall
 
 
 def _forklara_http_fel(kod: int, kropp: str, model: str) -> str:

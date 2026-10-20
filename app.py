@@ -145,7 +145,7 @@ def sida_installningar() -> None:
         )
         skriv = st.text_input(
             "Modell för CV och brev (bättre skrivning)", m.skriv_modell,
-            help="OpenRouter-modellnamn, t.ex. anthropic/claude-sonnet-4.6",
+            help="OpenRouter-modellnamn, t.ex. anthropic/claude-haiku-5.5",
         )
         if st.form_submit_button("Spara modeller", type="primary"):
             settings.save_modeller(conn, settings.Modeller(

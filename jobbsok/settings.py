@@ -41,7 +41,7 @@ class Sokinstallningar:
 @dataclass
 class Modeller:
     poang_modell: str = "openai/gpt-6-luna"
-    skriv_modell: str = "anthropic/claude-sonnet-4.6"
+    skriv_modell: str = "anthropic/claude-haiku-5.5"
 
 
 def _from_dict(cls, data: dict):
