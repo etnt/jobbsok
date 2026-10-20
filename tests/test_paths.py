@@ -29,3 +29,8 @@ def test_jobbsok_data_har_fortur(monkeypatch, tmp_path):
     monkeypatch.setenv("JOBBSOK_DATA", str(tmp_path / "min"))
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     assert storage.data_dir() == tmp_path / "min"
+
+
+def test_version_finns():
+    from jobbsok.version import __version__
+    assert __version__

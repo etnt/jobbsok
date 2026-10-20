@@ -37,6 +37,13 @@ jobs:
       - name: Kör tester
         run: python -m pytest -q
 
+      - name: Sätt versionsnummer från taggen
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          printf '"""Versionsnummer. Sätts av release-arbetsflödet från git-taggen (t.ex. v1.0.2)."""\n\n__version__ = "%s"\n' "$VERSION" > jobbsok/version.py
+          cat jobbsok/version.py
+
       - name: Bygg programmet
         run: >
           python -m PyInstaller --noconfirm --name JobbSok --onedir launcher.py

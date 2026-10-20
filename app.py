@@ -12,6 +12,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from jobbsok import annonser, ansokningar, dokument, geo, llm, matchning, platsbanken, settings
+from jobbsok.version import __version__
 from jobbsok.storage import connect, env_fil
 
 load_dotenv(env_fil(), override=True)  # .env har företräde framför terminalens variabler
@@ -425,7 +426,11 @@ SIDOR = {
 }
 
 with st.sidebar:
-    st.title("💼 JobbSök")
+    st.markdown(
+        "## 💼 JobbSök "
+        f"<span style='font-size:0.55em;color:#888;font-weight:400'>v{__version__}</span>",
+        unsafe_allow_html=True,
+    )
     valt = st.radio("Meny", list(SIDOR.keys()), label_visibility="collapsed")
 
 SIDOR[valt]()
