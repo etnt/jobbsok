@@ -40,8 +40,8 @@ class Sokinstallningar:
 
 @dataclass
 class Modeller:
-    poang_modell: str = "openai/gpt-4o-mini"
-    skriv_modell: str = "anthropic/claude-sonnet-4"
+    poang_modell: str = "openai/gpt-4.1-mini"
+    skriv_modell: str = "anthropic/claude-sonnet-4.6"
 
 
 def _from_dict(cls, data: dict):

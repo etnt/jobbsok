@@ -10,7 +10,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from jobbsok import annonser, geo, platsbanken, settings
+from jobbsok import annonser, geo, llm, matchning, platsbanken, settings
 from jobbsok.storage import APP_DIR, connect
 
 load_dotenv(APP_DIR / ".env")
@@ -143,11 +143,11 @@ def sida_installningar() -> None:
     with st.form("modell_form"):
         poang = st.text_input(
             "Modell för matchning (billig)", m.poang_modell,
-            help="OpenRouter-modellnamn, t.ex. openai/gpt-4o-mini",
+            help="OpenRouter-modellnamn, t.ex. openai/gpt-4.1-mini",
         )
         skriv = st.text_input(
             "Modell för CV och brev (bättre skrivning)", m.skriv_modell,
-            help="OpenRouter-modellnamn, t.ex. anthropic/claude-sonnet-4",
+            help="OpenRouter-modellnamn, t.ex. anthropic/claude-sonnet-4.6",
         )
         if st.form_submit_button("Spara modeller", type="primary"):
             settings.save_modeller(conn, settings.Modeller(
@@ -155,9 +155,38 @@ def sida_installningar() -> None:
             ))
             st.success("Modellinställningarna är sparade.")
 
+    st.subheader("Testa anslutningen")
+    if st.button("Testa AI-anslutningen"):
+        try:
+            svar = llm.chat(
+                [{"role": "user", "content": "Svara med ordet OK."}],
+                settings.load_modeller(conn).poang_modell, max_tokens=10,
+            )
+            st.success(f"Anslutningen fungerar. Svar: {svar.strip()[:50]}")
+        except llm.LLMFel as fel:
+            st.error(str(fel))
 
-def _visa_annons(annons, status: str) -> None:
-    with st.expander(f"{annons.rubrik} – {annons.arbetsgivare} ({annons.ort})"):
+
+def _poang_etikett(poang) -> str:
+    if poang is None:
+        return "⚪ ej poängsatt"
+    if poang.poang >= 70:
+        return f"🟢 {poang.poang}"
+    if poang.poang >= 40:
+        return f"🟡 {poang.poang}"
+    return f"🔴 {poang.poang}"
+
+
+def _visa_annons(annons, status: str, poang) -> None:
+    rubrik = f"{_poang_etikett(poang)}  ·  {annons.rubrik} – {annons.arbetsgivare} ({annons.ort})"
+    with st.expander(rubrik):
+        if poang is not None:
+            st.markdown(f"**Bedömning:** {poang.motivering}")
+            if poang.varningar:
+                st.markdown("**Att tänka på:** " + "; ".join(poang.varningar))
+            sprak_text = {"svenska_kravs": "Svenska krävs", "engelska_racker": "Engelska räcker",
+                     "okant": "Språkkrav oklart"}.get(poang.sprakkrav, poang.sprakkrav)
+            st.caption(f"{sprak_text} · Modell: {poang.modell}")
         st.markdown(
             f"**Anställning:** {annons.anstallning or '–'}  \n"
             f"**Arbetstid:** {annons.arbetstid or '–'}  \n"
@@ -179,13 +208,18 @@ def _visa_annons(annons, status: str) -> None:
 def sida_sok_jobb() -> None:
     st.header("Sök jobb")
     sok = settings.load_sok(conn)
+    profil = settings.load_profil(conn)
+    modeller = settings.load_modeller(conn)
     if not sok.orter:
         st.warning("Lägg till minst en ort under Sökinställningar först.")
         return
+    if not profil.namn and not profil.arbetslivserfarenhet and not profil.cv_text:
+        st.info("Tips: fyll i Min profil först, så kan jobben bedömas mot din bakgrund.")
 
     st.caption("Söker i Platsbanken (Arbetsförmedlingen) inom "
                f"{sok.radie_km} km från: {', '.join(sok.orter)}")
-    if st.button("Sök nya jobb", type="primary"):
+    k1, k2 = st.columns(2)
+    if k1.button("Sök nya jobb", type="primary"):
         with st.spinner("Söker i Platsbanken..."):
             try:
                 platser = []
@@ -202,6 +236,17 @@ def sida_sok_jobb() -> None:
             except Exception as fel:  # nätverksfel, API-fel
                 st.error(f"Sökningen misslyckades: {fel}")
 
+    if k2.button("Bedöm nya annonser med AI"):
+        with st.spinner("Bedömer annonser (max 25 åt gången)..."):
+            alla = [a for a, _ in annonser.lista(conn, annonser.STATUS_NY)]
+            alla += [a for a, _ in annonser.lista(conn, annonser.STATUS_SPARAD)]
+            klara, fel = matchning.poangsatt_nya(conn, alla, profil, sok, modeller)
+        if klara:
+            st.success(f"Bedömde {klara} annonser.")
+        for meddelande in fel[:3]:
+            st.error(meddelande)
+
+    poang = matchning.hamta_poang(conn)
     antal = annonser.antal_per_status(conn)
     flikar = st.tabs([
         f"Nya ({antal.get(annonser.STATUS_NY, 0)})",
@@ -211,10 +256,12 @@ def sida_sok_jobb() -> None:
     for flik, status in zip(flikar, [annonser.STATUS_NY, annonser.STATUS_SPARAD, annonser.STATUS_DOLD]):
         with flik:
             lista = annonser.lista(conn, status)
+            # Bästa poäng först, onbedömda sist
+            lista.sort(key=lambda par: -(poang[par[0].id].poang if par[0].id in poang else -1))
             if not lista:
                 st.info("Inga annonser här ännu.")
             for annons, _ in lista[:100]:
-                _visa_annons(annons, status)
+                _visa_annons(annons, status, poang.get(annons.id))
 
 
 def sida_tracker() -> None:
