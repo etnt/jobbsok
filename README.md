@@ -13,8 +13,10 @@ Lokal app för att hitta tillfälliga och deltidsjobb. Körs på din egen dator.
 
 - **Min profil:** fyll i uppgifter och klistra in CV-texten.
 - **Sökinställningar:** orter, avstånd och antal timmar per vecka.
-- **Sök jobb:** kommer i nästa version (Platsbanken).
+- **Sök jobb:** söker i Platsbanken inom valt avstånd. Deltid och tillfälliga jobb visas först. Spara eller dölj annonser.
 - **Mina ansökningar:** kommer i nästa version.
+
+Sökningen använder Arbetsförmedlingens öppna API (ingen nyckel krävs) och OpenStreetMap för att hitta koordinater till orter.
 
 Data sparas i mappen `data/` i appmappen. Personnummer lagras aldrig.
 

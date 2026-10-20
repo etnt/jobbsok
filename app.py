@@ -10,7 +10,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from jobbsok import settings
+from jobbsok import annonser, geo, platsbanken, settings
 from jobbsok.storage import APP_DIR, connect
 
 load_dotenv(APP_DIR / ".env")
@@ -156,9 +156,65 @@ def sida_installningar() -> None:
             st.success("Modellinställningarna är sparade.")
 
 
+def _visa_annons(annons, status: str) -> None:
+    with st.expander(f"{annons.rubrik} – {annons.arbetsgivare} ({annons.ort})"):
+        st.markdown(
+            f"**Anställning:** {annons.anstallning or '–'}  \n"
+            f"**Arbetstid:** {annons.arbetstid or '–'}  \n"
+            f"**Sista ansökningsdag:** {annons.sista_ansokningsdag or '–'}  \n"
+            f"**Yrke:** {annons.yrke or '–'}  \n"
+            f"**Publicerad:** {annons.publicerad or '–'}"
+        )
+        st.markdown(annons.beskrivning or "_Ingen beskrivning._")
+        st.link_button("Öppna annonsen på Platsbanken", annons.lank)
+        k1, k2 = st.columns(2)
+        if status != annonser.STATUS_SPARAD and k1.button("Spara", key=f"spara_{annons.id}"):
+            annonser.satt_status(conn, annons.id, annonser.STATUS_SPARAD)
+            st.rerun()
+        if status != annonser.STATUS_DOLD and k2.button("Dölj", key=f"dolj_{annons.id}"):
+            annonser.satt_status(conn, annons.id, annonser.STATUS_DOLD)
+            st.rerun()
+
+
 def sida_sok_jobb() -> None:
     st.header("Sök jobb")
-    st.info("Sökning i Platsbanken kommer i nästa steg.")
+    sok = settings.load_sok(conn)
+    if not sok.orter:
+        st.warning("Lägg till minst en ort under Sökinställningar först.")
+        return
+
+    st.caption("Söker i Platsbanken (Arbetsförmedlingen) inom "
+               f"{sok.radie_km} km från: {', '.join(sok.orter)}")
+    if st.button("Sök nya jobb", type="primary"):
+        with st.spinner("Söker i Platsbanken..."):
+            try:
+                platser = []
+                for ort in sok.orter:
+                    plats = geo.geocode(conn, ort)
+                    if plats is None:
+                        st.warning(f"Hittade inte orten '{ort}'. Kontrollera stavningen.")
+                    else:
+                        platser.append(plats)
+                if platser:
+                    hittade = platsbanken.sok_annonser(platser, sok)
+                    nya = annonser.spara_nya(conn, hittade)
+                    st.success(f"Hittade {len(hittade)} annonser, varav {nya} nya.")
+            except Exception as fel:  # nätverksfel, API-fel
+                st.error(f"Sökningen misslyckades: {fel}")
+
+    antal = annonser.antal_per_status(conn)
+    flikar = st.tabs([
+        f"Nya ({antal.get(annonser.STATUS_NY, 0)})",
+        f"Sparade ({antal.get(annonser.STATUS_SPARAD, 0)})",
+        f"Dolda ({antal.get(annonser.STATUS_DOLD, 0)})",
+    ])
+    for flik, status in zip(flikar, [annonser.STATUS_NY, annonser.STATUS_SPARAD, annonser.STATUS_DOLD]):
+        with flik:
+            lista = annonser.lista(conn, status)
+            if not lista:
+                st.info("Inga annonser här ännu.")
+            for annons, _ in lista[:100]:
+                _visa_annons(annons, status)
 
 
 def sida_tracker() -> None:
