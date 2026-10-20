@@ -23,6 +23,8 @@ Sökningen använder Arbetsförmedlingens öppna API (ingen nyckel krävs) och O
 
 Data sparas i mappen `data/` i appmappen. Personnummer lagras aldrig.
 
+**Byta datamapp:** sätt `JOBBSOK_DATA` i filen `.env`, t.ex. `JOBBSOK_DATA=C:\Users\DittNamn\JobbSok\data`. Om variabeln är tom eller saknas används `data/`. Variabeln i `.env` har företräde framför en eventuell variabel i terminalen, så kontrollera att du inte har en gammal inställning där.
+
 ## Utveckling
 
 ```

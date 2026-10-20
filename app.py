@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from jobbsok import annonser, ansokningar, dokument, geo, llm, matchning, platsbanken, settings
 from jobbsok.storage import APP_DIR, connect
 
-load_dotenv(APP_DIR / ".env")
+load_dotenv(APP_DIR / ".env", override=True)  # .env har företräde framför terminalens variabler
 
 st.set_page_config(page_title="JobbSök", page_icon="💼", layout="wide")
 
