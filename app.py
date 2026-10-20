@@ -141,7 +141,7 @@ def sida_installningar() -> None:
     with st.form("modell_form"):
         poang = st.text_input(
             "Modell för matchning (billig)", m.poang_modell,
-            help="OpenRouter-modellnamn, t.ex. openai/gpt-4.1-mini",
+            help="OpenRouter-modellnamn, t.ex. openai/gpt-6-luna",
         )
         skriv = st.text_input(
             "Modell för CV och brev (bättre skrivning)", m.skriv_modell,

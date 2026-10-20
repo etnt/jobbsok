@@ -40,7 +40,7 @@ class Sokinstallningar:
 
 @dataclass
 class Modeller:
-    poang_modell: str = "openai/gpt-4.1-mini"
+    poang_modell: str = "openai/gpt-6-luna"
     skriv_modell: str = "anthropic/claude-sonnet-4.6"
 
 
