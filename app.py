@@ -19,12 +19,9 @@ load_dotenv(APP_DIR / ".env")
 st.set_page_config(page_title="JobbSök", page_icon="💼", layout="wide")
 
 
-@st.cache_resource
-def _db():
-    return connect()
-
-
-conn = _db()
+# Ny anslutning för varje körning. SQLite-anslutningar får inte delas mellan trådar,
+# och Streamlit kör varje körning i en egen tråd.
+conn = connect()
 
 
 def _lista_fran_text(text: str) -> list[str]:

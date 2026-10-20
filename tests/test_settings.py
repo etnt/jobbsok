@@ -31,3 +31,21 @@ def test_okanda_falt_ignoreras(tmp_path):
     from jobbsok.storage import set_setting
     set_setting(conn, settings.SEARCH_KEY, {"radie_km": 10, "gammalt_falt": 1})
     assert settings.load_sok(conn).radie_km == 10
+
+
+def test_anslutning_fungerar_i_annan_trad(tmp_path):
+    # Streamlit kör varje körning i en egen tråd. Anslutningen måste skapas där den används.
+    import threading
+    from jobbsok.storage import get_setting, set_setting
+
+    resultat = {}
+
+    def arbete():
+        c = connect(tmp_path / "trad.sqlite3")
+        set_setting(c, "test", {"ok": True})
+        resultat["varde"] = get_setting(c, "test")
+
+    th = threading.Thread(target=arbete)
+    th.start()
+    th.join()
+    assert resultat["varde"] == {"ok": True}
