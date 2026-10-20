@@ -10,7 +10,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from jobbsok import annonser, geo, llm, matchning, platsbanken, settings
+from jobbsok import annonser, dokument, geo, llm, matchning, platsbanken, settings
 from jobbsok.storage import APP_DIR, connect
 
 load_dotenv(APP_DIR / ".env")
@@ -266,7 +266,88 @@ def sida_sok_jobb() -> None:
 
 def sida_tracker() -> None:
     st.header("Mina ansökningar")
-    st.info("Uppföljningslistan kommer i ett senare steg.")
+    st.caption("Välj en sparad annons för att skapa CV och personligt brev. "
+               "Du kan ändra allt innan du laddar ner dokumenten.")
+    sparade = [a for a, _ in annonser.lista(conn, annonser.STATUS_SPARAD)]
+    if not sparade:
+        st.info("Spara en annons under Sök jobb först.")
+        return
+
+    valda = st.selectbox(
+        "Annons", sparade,
+        format_func=lambda a: f"{a.rubrik} – {a.arbetsgivare} ({a.ort})",
+    )
+    st.link_button("Öppna annonsen på Platsbanken", valda.lank)
+    profil = settings.load_profil(conn)
+    sok = settings.load_sok(conn)
+    modeller = settings.load_modeller(conn)
+
+    sprak_val = st.radio(
+        "Språk på dokumenten", ["sv", "en"], horizontal=True,
+        format_func={"sv": "Svenska", "en": "Engelska"}.get,
+        index=["sv", "en"].index(dokument.sprak_for_annons(valda)),
+        key=f"sprak_{valda.id}",
+        help="Standard: engelska om annonsen är på engelska, annars svenska.",
+    )
+
+    if st.button("Skapa CV och brev med AI", type="primary"):
+        with st.spinner("Skriver CV och brev..."):
+            try:
+                dok = dokument.skapa_dokument(profil, sok, valda, modeller.skriv_modell, sprak=sprak_val)
+                dokument.spara(conn, dok)
+                st.success("Klart. Granska och ändra texten nedan.")
+            except llm.LLMFel as fel:
+                st.error(str(fel))
+
+    dok = dokument.hamta(conn, valda.id)
+    if dok is None:
+        st.info("Inga dokument ännu. Klicka på knappen ovan.")
+        return
+
+    with st.form(f"dok_form_{valda.id}"):
+        st.subheader("CV")
+        profiltext = st.text_area("Profiltext", dok.profiltext, height=90)
+        erf_text = st.text_area(
+            "Arbetslivserfarenhet", dokument.erfarenhet_till_text(dok.erfarenhet), height=220,
+            help="Ett block per jobb. Första raden: Titel | Arbetsgivare | Period. Punkter börjar med '- '.",
+        )
+        utb_text = st.text_area(
+            "Utbildning", dokument.utbildning_till_text(dok.utbildning), height=90,
+            help="En rad per examen: Examen | Lärosäte | Period",
+        )
+        komp = st.text_area("Kompetenser (en per rad)", _text_fran_lista(dok.kompetenser), height=110)
+        sprakk = st.text_area("Språk (en per rad)", _text_fran_lista(dok.sprakkunskaper), height=70)
+        st.subheader("Personligt brev")
+        brev = st.text_area(
+            "Brödtext (tre stycken, med tom rad mellan)", dok.brev, height=260,
+            help="Hälsning och avslutning läggs till automatiskt i Word-filen.",
+        )
+        if st.form_submit_button("Spara ändringar", type="primary"):
+            dok.profiltext = profiltext.strip()
+            dok.erfarenhet = dokument.erfarenhet_fran_text(erf_text)
+            dok.utbildning = dokument.utbildning_fran_text(utb_text)
+            dok.kompetenser = _lista_fran_text(komp)
+            dok.sprakkunskaper = _lista_fran_text(sprakk)
+            dok.brev = brev.strip()
+            dokument.spara(conn, dok)
+            st.success("Ändringarna är sparade.")
+
+    k1, k2 = st.columns(2)
+    namn = (profil.namn or "ansokan").replace(" ", "_")
+    k1.download_button(
+        "Ladda ner CV (Word)", dokument.exportera_cv(profil, dok),
+        file_name=f"CV_{namn}_{valda.id}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    k2.download_button(
+        "Ladda ner personligt brev (Word)", dokument.exportera_brev(profil, dok),
+        file_name=f"Brev_{namn}_{valda.id}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    if dok.modell:
+        st.caption(f"Skapad med modellen {dok.modell}. Kontrollera alltid faktauppgifterna innan du skickar.")
+
+
 
 
 SIDOR = {
